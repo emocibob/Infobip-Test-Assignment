@@ -1,8 +1,11 @@
 # Script info
 
 The script `scrape-expo-data.js` collects data about the exhibitors from the Mobile World Congress website.
+In total it scrapes ~3000 pages.
 
 After the script is finished running the user will be presented with a pop-up window asking to save a csv file with the data.
+
+The script was tested in the latest version of Google Chrome.
 
 ## Running the script
 
@@ -20,16 +23,17 @@ The file has the following columns:
 - `number` - row number
 - `name` - company name
 - `country` - company's country
-- `expo location` - company's booth/location at Mobile World Congress
+- `expo location` - company's booth/location at the Mobile World Congress
 - `products` - company's product categories
-- `more info url` - Link with more information about the company (Mobile World Congress website)
+- `contact info` - company's contact details (as listed on the Mobile World Congress website)
+- `website` - link to company website
 	
-Data for all columns is quoted with `"` and `,` is used as a delimiter.
+Data for all columns is quoted with `"` and `,` is used as the delimiter.
 The file has UTF-8 encoding.
 
 ### MS Excel
 
-Opening the csv file in Excel:
+Opening the csv file in Excel 2013:
 
 1. Open a new worksheet and select the *Data* tab.
 2. There select *From Text*.

@@ -7,7 +7,7 @@ function initScript() {
 
     var navDivs = tempEl.querySelectorAll('.page-numbers:not(.next)');
     totalPages = Number(navDivs[navDivs.length - 1].text);
-    remainingPages = Number(navDivs[navDivs.length - 1].text) - startingPage + 1;
+    remainingPages = Number(navDivs[navDivs.length - 1].text);
 
     scrapeGuests();
 }
@@ -19,7 +19,7 @@ function initScript() {
  * @param {number} pageIdx - Index for the current page in the global guestData array.
  */
 function scrapeSinglePage(request, pageIdx) {
-    console.log('Scraping page ' + String(pageIdx + 1) + '/' + String(totalPages) + ' (' + String(remainingPages) + ' more to go)...');
+    console.log('Scraping page ' + String(pageIdx + 1) + '/' + String(totalPages) + ' (' + String(remainingPages) + ' more pages to go)...');
 
     var tempEl = document.createElement('html'); // Dummy element to hold current page
     tempEl.innerHTML = request.responseText;
@@ -40,7 +40,7 @@ function scrapeSinglePage(request, pageIdx) {
 
     remainingPages--;
     if (remainingPages === 0) {
-        exportCsv();
+        getContactInfo();
     }
 }
 
@@ -51,7 +51,7 @@ function scrapeSinglePage(request, pageIdx) {
 function scrapeGuests() {
     var baseUrl = 'https://www.mobileworldcongress.com/exhibitors/page/';  // Base for the pagination links
     var requests = [];
-    for (var i = startingPage;  i <= totalPages; i++) {
+    for (var i = 1;  i <= totalPages; i++) {
         (function (i){
             requests[i] = new XMLHttpRequest();
             requests[i].addEventListener('load', function() {
@@ -64,20 +64,67 @@ function scrapeGuests() {
 }
 
 /**
- * Export guest data from the array guestData in a csv file.
+ * Scrape contact info from a company's page on https://www.mobileworldcongress.com/.
+ * 
+ * @param {object} request - XMLHttpRequest request object.
+ * @param {number} idx     - Index of company in the global array guestAllData.
+ * @param {string} url     - URL to company's page on https://www.mobileworldcongress.com/.
+ */
+function scrapeSingleContactInfo(request, idx, url) {
+    console.log('Getting contact info from ' + url + ' (' + Number(remainingContacts) + ' more contacts to go)...');
+    
+    var tempEl = document.createElement('html'); // Dummy element to hold current page
+    tempEl.innerHTML = request.responseText;
+
+    var contactInfo = null;
+    var titleDivs = tempEl.getElementsByClassName('tag-title');
+    for (var j = 0; j < titleDivs.length; j++) {
+        if (titleDivs[j].innerText === 'Contact Details') {
+            contactInfo = titleDivs[j].nextElementSibling.innerText.replace(/\n+/g, ', ').replace(/, $/g, '').replace(/^\s/, '');
+            break;
+        }
+    }
+    guestAllData[idx]['contact-info']    = (contactInfo === null ? '' : contactInfo);
+    guestAllData[idx]['company-website'] = (tempEl.getElementsByClassName('websitebox').length === 0 ? '' : tempEl.getElementsByClassName('websitebox')[0].href);
+
+    remainingContacts--;
+    if (remainingContacts === 0) {
+        exportCsv();
+    }
+}
+
+/**
+ * Get contact info for all entries (companies) in the global array guestData.
+ */
+function getContactInfo() {
+    guestAllData = [].concat.apply([], guestData);  // Convert 2D array to 1D
+    remainingContacts = guestAllData.length;
+    var contactRequests = [];
+    for (var i = 0; i < guestAllData.length; i++) {
+        (function(i){
+            contactRequests[i] = new XMLHttpRequest();
+            contactRequests[i].addEventListener('load', function() {
+                scrapeSingleContactInfo(this, i, guestAllData[i]['more-info-url']);
+            });
+            contactRequests[i].open('GET', guestAllData[i]['more-info-url']);
+            contactRequests[i].send();
+        })(i);
+    }
+}
+
+/**
+ * Export guest data from the array guestAllData in a csv file.
  * The user will be presented with a save/open file pop-up.
  */
 function exportCsv() {
     console.log('Exporting data in csv file...');
 
     var line, counter = 0;
-    var fullCsv = 'data:text/csv;charset=utf-8,"number","name","country","expo location","products","more info url"%0A';  // %0A is a new line char
-    for (var i = startingPage - 1; i < totalPages; i++) {
-        for (var j = 0; j < guestData[i].length; j++) {
-            counter++;
-            line = '"' + String(counter) + '",'+ '"' + guestData[i][j]['name'] + '",' + '"' + guestData[i][j]['country'] + '",' + '"' + guestData[i][j]['expo-location'] + '",' + '"' + guestData[i][j]['products'] + '",' + '"' + guestData[i][j]['more-info-url'] + '"%0A';  // %0A is a new line char
-            fullCsv += line;
-        }
+    var fullCsv = 'data:text/csv;charset=utf-8,"number","name","country","expo location","products","contact info","website"%0A';  // %0A is a new line char
+    for (var i = 0; i < guestAllData.length; i++) {
+        counter++;
+        line = '"' + String(counter) + '","' + guestAllData[i]['name'] + '","' + guestAllData[i]['country'] + '","' + guestAllData[i]['expo-location'] + '","' + guestAllData[i]['products'] + '","' + guestAllData[i]['contact-info'] + '","' + guestAllData[i]['company-website'] + '"%0A';  // %0A is a new line char
+        fullCsv += line;
     }
     // Create dummy link to download csv
     var a = document.createElement('a');
@@ -88,8 +135,8 @@ function exportCsv() {
     a.click();
 }
 
-var guestData = [];
-var totalPages, remainingPages, startingPage = 1;
+var guestData = [], guestAllData;
+var totalPages, remainingPages, remainingContacts;
 // Get total number of pages with guest data and start scraping them
 var req = new XMLHttpRequest();
 req.addEventListener('load', initScript);
