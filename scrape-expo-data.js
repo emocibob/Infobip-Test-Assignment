@@ -19,7 +19,7 @@ function initScript() {
  * @param {number} pageIdx - Index for the current page in the global guestData array.
  */
 function scrapeSinglePage(request, pageIdx) {
-    console.log('Scraping page ' + String(pageIdx + 1) + '/' + String(totalPages) + ' (' + String(remainingPages) + ' more pages to go)...');
+    console.log('Step 1/3: Collecting guest list | Scraping page ' + String(pageIdx + 1) + '/' + String(totalPages) + ' (' + String(remainingPages) + ' more pages to go)...');
 
     var tempEl = document.createElement('html'); // Dummy element to hold current page
     tempEl.innerHTML = request.responseText;
@@ -71,7 +71,7 @@ function scrapeGuests() {
  * @param {string} url     - URL to company's page on https://www.mobileworldcongress.com/.
  */
 function scrapeSingleContactInfo(request, idx, url) {
-    console.log('Getting contact info from ' + url + ' (' + Number(remainingContacts) + ' more contacts to go)...');
+    console.log('Step 2/3: Collecting contact details | Scraping contact info from ' + url + ' (' + Number(remainingContacts) + ' more contacts to go)...');
     
     var tempEl = document.createElement('html'); // Dummy element to hold current page
     tempEl.innerHTML = request.responseText;
@@ -117,7 +117,7 @@ function getContactInfo() {
  * The user will be presented with a save/open file pop-up.
  */
 function exportCsv() {
-    console.log('Exporting data in csv file...');
+    console.log('Step 3/3: Exporting | Saving data to csv file...');
 
     var line, counter = 0;
     var fullCsv = 'data:text/csv;charset=utf-8,"number","name","country","expo location","products","contact info","website"%0A';  // %0A is a new line char
