@@ -94,6 +94,24 @@ function scrapeSingleContactInfo(request, idx, url) {
 }
 
 /**
+ * Set contact info after a timeout is reached.
+ * 
+ * @param {*} idx - Index of company in the global array guestAllData.
+ * @param {*} url - URL to company's page on https://www.mobileworldcongress.com/.
+ */
+function timeoutSingleContactInfo(idx, url) {
+    console.log('Step 2/3: Collecting contact details | WARNING request timeout for ' + url + ' (' + Number(remainingContacts) + ' more contacts to go)...');
+
+    guestAllData[idx]['contact-info']    = 'No data (request timeout)';
+    guestAllData[idx]['company-website'] = 'No data (request timeout)';
+
+    remainingContacts--;
+    if (remainingContacts === 0) {
+        exportCsv();
+    }
+}
+
+/**
  * Get contact info for all entries (companies) in the global array guestData.
  */
 function getContactInfo() {
@@ -103,9 +121,13 @@ function getContactInfo() {
     for (var i = 0; i < guestAllData.length; i++) {
         (function(i){
             contactRequests[i] = new XMLHttpRequest();
+            contactRequests[i].timeout = 900000;  // 15 min
             contactRequests[i].addEventListener('load', function() {
                 scrapeSingleContactInfo(this, i, guestAllData[i]['more-info-url']);
             });
+            contactRequests[i].ontimeout = function (e) {
+                timeoutSingleContactInfo(i, guestAllData[i]['more-info-url']);
+            };
             contactRequests[i].open('GET', guestAllData[i]['more-info-url']);
             contactRequests[i].send();
         })(i);
